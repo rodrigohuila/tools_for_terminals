@@ -1,2 +1,2 @@
-# tools_for_terminlas
-Pack of tool that speed up processes
+# tools_for_terminals
+Pack of tools that speed up some processes!!!
