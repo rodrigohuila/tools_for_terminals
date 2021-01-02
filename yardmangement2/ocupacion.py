@@ -7,6 +7,8 @@ from tkinter import *  # Prueba borrar cuadro dialogo
 from tkinter.ttk import * # Prueba borrar cuadro dialogo
 from os.path import basename
 import openpyxl
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
 import xlrd
 import xlwt
 from xlutils.copy import copy
@@ -57,7 +59,7 @@ def count_teus(pies): # figure out Teus
 
 
 
-def ocupacion_list(sheet): # RECEIVE EXCEL SHIFT AND GENERETE A ORDERED LIST
+def ocupacion_list(sheet, pathtoSave): # RECEIVE EXCEL SHIFT AND GENERETE A ORDERED LIST
     
     #INIT VAR AND LIST
     containers_import = []
@@ -69,6 +71,7 @@ def ocupacion_list(sheet): # RECEIVE EXCEL SHIFT AND GENERETE A ORDERED LIST
     containers_ovhemt = []
     containers_apto = []
     containers_all = []
+    containers_lost = []
 
     total_vacios = 0
     total_llenos = 0
@@ -94,9 +97,11 @@ def ocupacion_list(sheet): # RECEIVE EXCEL SHIFT AND GENERETE A ORDERED LIST
         altura = (ubicacion[12:13])
         linea = (repr(sheet.cell_value(i, 10)).replace("'",""))
         dias_terminal = repr(sheet.cell_value(i, 24)).replace("'","")
+        container = repr(sheet.cell_value(i, 0))
 
         if sit == "C" or sit == "":
-            if zona != "S":
+            #if zona != "S" :
+            if ubicacion[0:4] != "S 04":
                 if frigo == "":
                     if tipo != "FLT" and tipo != "HFL" and tipo != "O/T" and tipo != "OTH" and tipo != "T/K" and tipo != "":                       
                             if estatus == "HH": # Import
@@ -146,13 +151,20 @@ def ocupacion_list(sheet): # RECEIVE EXCEL SHIFT AND GENERETE A ORDERED LIST
                             containers_all.append(line)
                             total_vacios += int(teus)
                             #print (line)
-                elif frigo != "": # Refrigerados
-                    if zona != "S":
+                elif frigo != "": # Refrigerados                    
                          teus = count_teus(pies)
                          line = {"zona": zona, "bloque" : bloque,  "teus": teus, "estatus": estatus, "frigo": frigo, "linea": linea}
                          containers_reefer.append(line)
                          containers_all.append(line)
                          total_llenos += int(teus)
+            else:
+                teus = count_teus(pies)
+                line = {"container": container, "zona": zona, "bloque" : bloque,  "teus": teus, "estatus": estatus, "linea": linea}
+                containers_lost.append(line)
+                
+    print ('Unidades perdidas:')
+    for container in containers_lost:
+        print (container)
 
     #os.chdir(pathFile) # go to Pathhfile
 
@@ -187,11 +199,11 @@ def ocupacion_list(sheet): # RECEIVE EXCEL SHIFT AND GENERETE A ORDERED LIST
         ornament()  
     if len(containers_ovh) > 0: 
         print ('\nOVH')
-        print (pd.pivot_table(df2ovh, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum))
+        print (pd.pivot_table(df2ovh, values='teus', index=['zona', 'bloque', 'estatus', 'tipo'], margins=True, aggfunc=np.sum))
         ornament()
     if len(containers_ovhemt) > 0: 
         print ('\nOVHEMT')
-        print (pd.pivot_table(df2ovhemt, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum))
+        print (pd.pivot_table(df2ovhemt, values='teus', index=['zona', 'bloque', 'estatus', 'tipo'], margins=True, aggfunc=np.sum))
         ornament()
     if len(containers_mty) > 0:     
         print ('\nVACÍOS')
@@ -207,38 +219,130 @@ def ocupacion_list(sheet): # RECEIVE EXCEL SHIFT AND GENERETE A ORDERED LIST
         ornament()
     
     # Generar archivo EXCEL
-    #writer = pd.ExcelWriter(f'ocupación_{formato}.xlsx', engine='xlsxwriter')
-    #(pd.pivot_table(df2export, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_excel(writer, sheet_name='Ocupación1')
-    #workbook = writer.book
+    os.chdir(pathtoSave) #Go to the pathfile
+    writer = pd.ExcelWriter(f'ocupación_{formato}.xlsx', engine='xlsxwriter')
+    workbook = writer.book
     #worksheet = writer.sheets['Ocupación1']
-    #writer.save()
+    writer.save()
 
-    #with pd.ExcelWriter(f'ocupación_{formato}.xlsx', engine='openpyxl', mode='a') as writer:
-        #(pd.pivot_table(df2trb, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_excel(writer, sheet_name='Ocupación2')
-        #(pd.pivot_table(df2import, values='teus', index=['zona', 'bloque', 'estatus'], aggfunc=np.sum, margins=True)).to_excel(writer, sheet_name='Ocupación3')
-        #(pd.pivot_table(df2reefer, values='teus', index=['zona', 'bloque', 'estatus', 'frigo'], margins=True, aggfunc=np.sum)).to_excel(writer, sheet_name='Ocupación4')
-        #(pd.pivot_table(df2ovh, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_excel(writer, sheet_name='Ocupación5')
-        #(pd.pivot_table(df2ovhemt, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_excel(writer, sheet_name='Ocupación6')
-        #(pd.pivot_table(df2empty, values='teus', index=['zona', 'bloque'], margins=True, aggfunc=np.sum)).to_excel(writer, sheet_name='Ocupación7')
-        #(pd.pivot_table(df2apto, values='teus', index=['zona', 'bloque'], margins=True, aggfunc=np.sum)).to_excel(writer, sheet_name='Ocupación8')
-        #(pd.pivot_table(df2lineasall, values='teus', index=['linea', 'estatus'], margins=True, aggfunc=np.sum)).to_excel(writer, sheet_name='Ocupación9')
+    with pd.ExcelWriter(f'ocupación_{formato}.xlsx', engine='openpyxl', mode='a') as writer:
+        (pd.pivot_table(df2export, values=['teus'], index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_excel(writer, header=True, startcol=1, startrow=1)
+        (pd.pivot_table(df2import, values='teus', index=['zona', 'bloque', 'estatus'], aggfunc=np.sum, margins=True)).to_excel(writer, header=True, startcol=1, startrow=17) 
+        (pd.pivot_table(df2trb, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_excel(writer, header=True, startcol=6, startrow=1)       
+        (pd.pivot_table(df2reefer, values='teus', index=['zona', 'bloque', 'estatus', 'frigo'], margins=True, aggfunc=np.sum)).to_excel(writer, header=True, startcol=6, startrow=12) 
+        (pd.pivot_table(df2ovh, values='teus', index=['zona', 'bloque', 'estatus','tipo'], margins=True, aggfunc=np.sum)).to_excel(writer, header=True, startcol=16, startrow=14)       
+        (pd.pivot_table(df2empty, values='teus', index=['zona', 'bloque'], margins=True, aggfunc=np.sum)).to_excel(writer, header=True, startcol=12, startrow=1) 
+        (pd.pivot_table(df2apto, values='teus', index=['zona', 'bloque'], margins=True, aggfunc=np.sum)).to_excel(writer, header=True, startcol=6, startrow=26)       
+        (pd.pivot_table(df2ovhemt, values='teus', index=['zona', 'bloque', 'estatus', 'tipo'], margins=True, aggfunc=np.sum)).to_excel(writer, header=True, startcol=16, startrow=1)
+        (pd.pivot_table(df2lineasall, values='teus', index=['linea', 'estatus'], margins=True, aggfunc=np.sum)).to_excel(writer, header=True, startcol=22, startrow=1)
 
-        #writer.save()
+    book = openpyxl.load_workbook(f'ocupación_{formato}.xlsx')
+    sheet = book.worksheets[1]    
+
+    whitefill = PatternFill(fill_type='solid',
+                    start_color='00FFFFFF',
+                    end_color='00FFFFFF')    
+    for rows in sheet.iter_rows(min_row=1, max_row=60, min_col=1, max_col=30):
+        for cell in rows:
+            cell.fill = whitefill
+
+    ft = Font(name='Verdana',
+                size=12,
+                bold = True,
+                color='FF000000')                   
+    sheet['B1'] = 'EXPORTACIÓN'
+    sheet['B1'].font = ft
+    sheet['B17'] = 'IMPORTACIÓN'
+    sheet['B17'].font = ft
+    sheet['G1'] = 'TRANSBORDO'
+    sheet['G1'].font = ft    
+    sheet['G12'] = 'REFRIGERADOS'
+    sheet['G12'].font = ft
+    sheet['Q14'] = 'LLENOS ESPECIALES'
+    sheet['Q14'].font = ft    
+    sheet['M1'] = 'VACÍOS EVACUACIÓN'
+    sheet['M1'].font = ft
+    sheet['G26'] = 'VACÍOS APTO ALIMENTO'
+    sheet['G26'].font = ft
+    sheet['Q1'] = 'VACÍOS ESPECIALES'
+    sheet['Q1'].font = ft
+    sheet['W1'] = 'LINEAS'
+    sheet['W1'].font = ft
+    sheet.title = 'Ocupación'
+
+
+    #CAPACITY TOTAL TEUS
+    cap_llenos = 7150
+    cap_vacios = 6460
+    cap_total = 13610
+
+    llenos = int(total_llenos)
+    pllenos = (llenos / cap_llenos) * 100
+    vacios = int(total_vacios)
+    pvacios = (vacios / cap_vacios) * 100
+    total = llenos + vacios
+    ocupacion = (total / cap_total ) * 100
+
+    ft2 = Font(name='Verdana',
+                size=11,
+                bold = True,
+                color='FF000000')
+    yellowfill = PatternFill(fill_type='solid',
+                    start_color='00FFFF00',
+                    end_color='00FFFF00')
+    for rows in sheet.iter_rows(min_row=36, max_row=37, min_col=11, max_col=16):
+        for cell in rows:
+            cell.fill = yellowfill
+    for rows in sheet.iter_rows(min_row=39, max_row=39, min_col=11, max_col=16):
+        for cell in rows:
+            cell.fill = yellowfill        
+
+    sheet['K36'] = f"Teus Conts Llenos {llenos} - ocupación {round(pllenos, 1)}%"
+    sheet['K36'].font = ft2
+    sheet['K37'] = f"Teus Conts Vacíos {vacios} - ocupación {round(pvacios, 1)}%"
+    sheet['K37'].font = ft2
+    sheet['K39'] = f"Total Teus Ocupación es {total} - {round(ocupacion, 1)}%"
+    sheet['K39'].font = ft
+
+
+    sheet0 = book.worksheets[0]
+    book.remove_sheet(sheet0)
+     
+    book.save(f'ocupación_{formato}.xlsx')   
+
 
     # Generar archivo CSV
+    #os.chdir(pathtoSave) #Go to the pathfile
     
-    (pd.pivot_table(df2export, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv')
+    #(pd.pivot_table(df2export, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv')
     #writer = csv.writer(f'Ocupación_{formato}.csv', 'w')
     #writer.writerow(('TRANSBORDOS'))
     #('EXPORTACIÓN').to_csv(f'Ocupación_{formato}.csv', mode='a')
-    (pd.pivot_table(df2trb, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
-    (pd.pivot_table(df2import, values='teus', index=['zona', 'bloque', 'estatus'], aggfunc=np.sum, margins=True)).to_csv(f'Ocupación_{formato}.csv', mode='a')
-    (pd.pivot_table(df2reefer, values='teus', index=['zona', 'bloque', 'estatus', 'frigo'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
-    (pd.pivot_table(df2ovh, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
-    (pd.pivot_table(df2ovhemt, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
-    (pd.pivot_table(df2empty, values='teus', index=['zona', 'bloque'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
-    (pd.pivot_table(df2apto, values='teus', index=['zona', 'bloque'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
-    (pd.pivot_table(df2lineasall, values='teus', index=['linea', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
+    #(pd.pivot_table(df2trb, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
+    #(pd.pivot_table(df2import, values='teus', index=['zona', 'bloque', 'estatus'], aggfunc=np.sum, margins=True)).to_csv(f'Ocupación_{formato}.csv', mode='a')
+    #(pd.pivot_table(df2reefer, values='teus', index=['zona', 'bloque', 'estatus', 'frigo'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
+    #(pd.pivot_table(df2ovh, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
+    #(pd.pivot_table(df2ovhemt, values='teus', index=['zona', 'bloque', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
+    #(pd.pivot_table(df2empty, values='teus', index=['zona', 'bloque'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
+    #(pd.pivot_table(df2apto, values='teus', index=['zona', 'bloque'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
+    #(pd.pivot_table(df2lineasall, values='teus', index=['linea', 'estatus'], margins=True, aggfunc=np.sum)).to_csv(f'Ocupación_{formato}.csv', mode='a')
+
+
+    #CAPACITY TOTAL TEUS
+    #cap_llenos = 7150
+    #cap_vacios = 6460
+    #cap_total = 13610
+
+    #llenos = int(total_llenos)
+    #pllenos = (llenos / cap_llenos) * 100
+    #vacios = int(total_vacios)
+    #pvacios = (vacios / cap_vacios) * 100
+    #total = llenos + vacios
+    #ocupacion = (total / cap_total ) * 100
+
+    print (f"\nTotal Llenos {llenos} - ocupacion {round(pllenos, 1)}%")
+    print (f"Total Vacíos {vacios} - ocupacion {round(pvacios, 1)}%")
+    print (f"\nTotal Ocupación es {total} - {round(ocupacion, 1)}%")
 
     return (total_vacios, total_llenos)            
 
