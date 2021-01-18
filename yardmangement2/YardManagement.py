@@ -15,6 +15,7 @@ import re
 from openpyxl.styles import PatternFill
 from openpyxl.utils import get_column_letter
 import pandas as pd
+import numpy as np
 import pyexcel as p
 from xls2xlsx import XLS2XLSX
 from operator import itemgetter, attrgetter
@@ -130,7 +131,7 @@ def ordered_list(sheet, seleccion, option): # RECEIVE EXCEL SHIFT AND GENERETE A
                             mty_containers_ABC_even.append(line)
                         elif int(bloque) % 2 == 1:
                             mty_containers_ABC_odd.append(line)
-                    elif zona == "Z":
+                    elif zona == "Z" or zona == "H" or zona == "P" or zona == "S":
                         mty_containers_Z.append(line)
         elif option == 2: # Buque export
                if buque_export == seleccion:
@@ -144,7 +145,7 @@ def ordered_list(sheet, seleccion, option): # RECEIVE EXCEL SHIFT AND GENERETE A
                                 mty_containers_ABC_even.append(line)
                             elif int(bloque) % 2 == 1:
                                 mty_containers_ABC_odd.append(line)
-                        elif zona == "Z":
+                        elif zona == "Z" or zona == "H" or zona == "P" or zona == "S":
                             mty_containers_Z.append(line)
         elif option == 3: # By Line
               if linea == seleccion:
@@ -188,12 +189,12 @@ def ordered_list(sheet, seleccion, option): # RECEIVE EXCEL SHIFT AND GENERETE A
                         line = {"contenedor" : contenedor, "pies" : pies, "tipo": tipo, "pdescarga": pdescarga, "linea" : linea, "estatus" : estatus,
                                    "ubicacion" : ubicacion, "observacion": observacion, "dias_en_terminal" : dias_terminal, "fecha_ingreso": fecha, "zona": zona, "bloque" : bloque,
                                    "modulo" : modulo, "calle" : calle, "altura" : altura}
-                        if zona == "A" or zona == "B" or zona =="C":
+                        if zona == "A" or zona == "B" or zona =="C" or zona =="F":
                             if int(bloque) % 2 == 0:
                                 mty_containers_ABC_even.append(line)
                             elif int(bloque) % 2 == 1:
                                 mty_containers_ABC_odd.append(line)
-                        elif zona == "Z":
+                        elif zona == "Z" or zona == "H" or zona == "P" or zona == "S":
                             mty_containers_Z.append(line)
         elif option == 6: # Asignación Evacuación
             if buque_export == seleccion:
@@ -201,11 +202,15 @@ def ordered_list(sheet, seleccion, option): # RECEIVE EXCEL SHIFT AND GENERETE A
                 if estatus == "EMT" or estatus == "TRV":
                     if sit == "C":
                         pies = int(float(pies))
+                        quantity = count_quantity(pies)
                         dias_terminal = int(float(dias_terminal))
                         fecha = ((now - timedelta(days=dias_terminal)).strftime("%d-%m-%Y"))
                         line = {"contenedor": contenedor, "pies": pies, "tipo": tipo, "estatus": estatus,"pdescarga": pdescarga, "pfinal":  pfinal,
-                                   "sit": sit, "linea":linea, "buque_export" : buque_export, "viaje_export" : viaje_export , "fecha_ingreso": fecha}
-                        mty_asignacion.append(line)       
+                                   "sit": sit, "linea":linea, "buque_export" : buque_export, "viaje_export" : viaje_export , "fecha_ingreso": fecha, "conts": quantity}
+                        mty_asignacion.append(line)
+                        viaje = viaje_export
+            
+       
 
      
     # Order lists
@@ -233,7 +238,12 @@ def ordered_list(sheet, seleccion, option): # RECEIVE EXCEL SHIFT AND GENERETE A
         mty_asignacion.sort(key=lambda x: x.get("contenedor"), reverse=False)
         mty_asignacion.sort(key=lambda x: x.get("tipo"), reverse=False)
         mty_asignacion.sort(key=lambda x: x.get("pies"), reverse=False)
-        mty_asignacion.sort(key=lambda x: x.get("pdescarga"), reverse=False)  
+        mty_asignacion.sort(key=lambda x: x.get("pdescarga"), reverse=False)
+        dfasignacion = pd.DataFrame(mty_asignacion)
+        
+        print(f"""\nMotonave {seleccion.upper()}  {viaje.upper()}
+               {pd.pivot_table(dfasignacion, values='conts', index=['pdescarga', 'pies', 'tipo'], margins=True, aggfunc=np.sum)}
+                """)
         
        
     # Unir todas las listas ordenadas
@@ -348,7 +358,7 @@ def ordered_list(sheet, seleccion, option): # RECEIVE EXCEL SHIFT AND GENERETE A
             worksheet.set_column("F:G", 7)
             worksheet.set_column("H:H", 17)
             worksheet.set_column("I:I", 21)
-            worksheet.set_column("J:J", 19)
+            worksheet.set_column("J:J", 19)            
         elif option == 5:
             # format-font
             cell_format = workbook.add_format()
@@ -500,80 +510,82 @@ def main():  # MAIN
             menu2()
             print (f'Archivo procesado actualmente: {basename}\n')
             try:
-                option =  int(input("Seleccione una opción: "))
-                ornament()
-                if option == 1: # Vacíos desde buque
-                    seleccion =  askUser(option)
-                    ordered_list(sheet, seleccion, option)
-                    time.sleep(seg)
-                    clear()
-                elif option == 2: # Vacíos desde freepool
-                    seleccion =  askUser(option)
-                    ordered_list(sheet, seleccion, option)
-                    time.sleep(seg)
-                    clear()
-                elif option == 3: # Vacíos por líneas
-                    seleccion =  askUser(option)
-                    ordered_list(sheet, seleccion, option)
-                    time.sleep(seg)
-                    clear()
-                elif option == 4: # Vacíos por puerto
-                    seleccion =  askUser(option)
-                    ordered_list(sheet, seleccion, option)
-                    time.sleep(seg)
-                    clear()
-                elif option == 5: # Retención
-                    seleccion =  askUser(option)
-                    ordered_list(sheet, seleccion, option)
-                    time.sleep(seg)
-                    clear()
-                elif option == 6: # Asignación Vacíos
-                    seleccion =  askUser(option)
-                    ordered_list(sheet, seleccion, option)
-                    time.sleep(seg)
-                    clear()
-                elif option == 7: #Posicionados
-                    root = Tk() # ERASE DIALOG
-                    root.update()
-                    pos_list = getFile(pathFile)
-                    root.destroy() 
-                    typeContainer(pos_list)
-                    time.sleep(seg)
-                    clear()
-                elif option == 8: # Ocupación
-                    #seleccion =  askUser(option)
+                option =  input("Seleccione una opción: ")
+                if option.isdigit():
+                    option=int(option)
                     ornament()
-                    print("OCUPACIÓN EN TEUS".center(espacios))
-                    ornament()
-                    ocupacion = ocupacion_list(sheet, pathFile)
-                    #time.sleep(seg)
-                    #clear()    
-                elif option == 9: # New Existencia
-                    file = createFile()
-                    wb = file[0]
-                    sheet = file[1]
-                    basename = file[2]
-                    clear()               
-                elif option == 10: # Choose a selected File Existencia
-                    root = Tk() # ERASE DIALOG
-                    root.update()    
-                    file = openFile()
-                    root.destroy()
-                    wb = xlrd.open_workbook(file, encoding_override="cp1252") # Read excel book
-                    sheet = wb.sheet_by_index(0)
-                    basename = os.path.basename(file)  
-                    clear()
-                elif option == 11: # quantities by type
-                    print("QUANTITIES BY TYPE".center(espacios))
-                    quantities_list(sheet, pathFile)
-                    #time.sleep(seg)
-                    #clear()    
-                elif option == 0:
-                    break
+                    if option == 1: # Vacíos desde buque
+                        seleccion =  askUser(option)
+                        ordered_list(sheet, seleccion, option)
+                        time.sleep(seg)
+                        clear()
+                    elif option == 2: # Vacíos desde freepool
+                        seleccion =  askUser(option)
+                        ordered_list(sheet, seleccion, option)
+                        time.sleep(seg)
+                        clear()
+                    elif option == 3: # Vacíos por líneas
+                        seleccion =  askUser(option)
+                        ordered_list(sheet, seleccion, option)
+                        time.sleep(seg)
+                        clear()
+                    elif option == 4: # Vacíos por puerto
+                        seleccion =  askUser(option)
+                        ordered_list(sheet, seleccion, option)
+                        time.sleep(seg)
+                        clear()
+                    elif option == 5: # Retención
+                        seleccion =  askUser(option)
+                        ordered_list(sheet, seleccion, option)
+                        time.sleep(seg)
+                        clear()
+                    elif option == 6: # Asignación Vacíos
+                        seleccion =  askUser(option)
+                        ordered_list(sheet, seleccion, option)
+                        time.sleep(seg)
+                        #clear()
+                    elif option == 7: #Posicionados
+                        root = Tk() # ERASE DIALOG
+                        root.update()
+                        pos_list = getFile(pathFile)
+                        root.destroy() 
+                        typeContainer(pos_list)
+                        time.sleep(seg)
+                        clear()
+                    elif option == 8: # Ocupación
+                        #seleccion =  askUser(option)
+                        ornament()
+                        print("OCUPACIÓN EN TEUS".center(espacios))
+                        ornament()
+                        ocupacion = ocupacion_list(sheet, pathFile)
+                        #time.sleep(seg)
+                        #clear()    
+                    elif option == 9: # New Existencia
+                        file = createFile()
+                        wb = file[0]
+                        sheet = file[1]
+                        basename = file[2]
+                        clear()               
+                    elif option == 10: # Choose a selected File Existencia
+                        root = Tk() # ERASE DIALOG
+                        root.update()    
+                        file = openFile()
+                        root.destroy()
+                        wb = xlrd.open_workbook(file, encoding_override="cp1252") # Read excel book
+                        sheet = wb.sheet_by_index(0)
+                        basename = os.path.basename(file)  
+                        clear()
+                    elif option == 11: # quantities by type
+                        print("QUANTITIES BY TYPE".center(espacios))
+                        quantities_list(sheet, pathFile)
+                        #time.sleep(seg)
+                        #clear()    
+                    elif option == 0:
+                        break
                 else:
                     print()
                     clear()
-                    print("Error, solo de aceptan números del 0 al 9")
+                    print("Error, solo de aceptan números del 0 al 11")                
             #except ValueError:
             except TypeError as err:       
                   print("Error, ingrese solamente números", err)            
