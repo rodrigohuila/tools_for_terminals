@@ -30,7 +30,7 @@ import pyautogui
 
 
 userName = getuser()
-pathFile = r"S:\OPS\PLANIFICACION\Secuencia de retiro vacios"
+pathFile = r"S:\OPS\PLANIFICACION\Listados Yard Planning"
 pathFile2 = rf"C:\Users\{userName}\Desktop\Existencias"
 #print(pathFile)
 #root = Tk() # ERASE DIALOG
@@ -194,7 +194,7 @@ def ordered_list(sheet, seleccion, option): # RECEIVE EXCEL SHIFT AND GENERETE A
                                 mty_containers_ABC_even.append(line)
                             elif int(bloque) % 2 == 1:
                                 mty_containers_ABC_odd.append(line)
-                        elif zona == "Z" or zona == "H" or zona == "P" or zona == "S":
+                        elif zona == "Z" or zona == "H" or zona == "P" or zona == "S" or zona == "M":
                             mty_containers_Z.append(line)
         elif option == 6: # Asignación Evacuación
             if buque_export == seleccion:
