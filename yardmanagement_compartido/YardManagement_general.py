@@ -27,7 +27,8 @@ import pyautogui
 
 
 
-pathFile = r"S:/OPS/PLANIFICACION/Listados Yard Planning/"
+#pathFile = r"S:/OPS/PLANIFICACION/Listados Yard Planning/"
+pathFile = os.getcwd()
 #print(pathFile)
 #root = Tk() # ERASE DIALOG
 #root.update()
@@ -446,6 +447,7 @@ def menu2():
     print ("6. Asignación Evacuación")
     print ("7. Digitar Posicionados")
     print ("8. Ocupación")
+    print ("9. Cantidades por Tipo")
     print("0. Salir")
     print()
 
@@ -513,7 +515,12 @@ def main():  # MAIN
                     ornament()
                     print("OCUPACIÓN EN TEUS".center(espacios))
                     ornament()
-                    ocupacion = ocupacion_list(sheet, pathFile)                              
+                    ocupacion = ocupacion_list(sheet, pathFile)
+                elif option == 9: # Quantities by type
+                    ornament()
+                    print("CANTIDADES POR TIPO".center(espacios))
+                    ornament()
+                    ocupacion = quantities_list(sheet, pathFile)                                
                 elif option == 0:
                     break
                 else:
